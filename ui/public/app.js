@@ -1,5 +1,4 @@
 const pickBtn = document.getElementById('pickBtn');
-const folderInput = document.getElementById('folderInput');
 const bar = document.getElementById('bar');
 const msg = document.getElementById('msg');
 const state = document.getElementById('state');
@@ -140,8 +139,7 @@ function openEditor(candidate) {
   modal.style.display = 'flex';
 
   const md0 = draftSkillMarkdown(candidate);
-
-  const ta = el('textarea', { id: 'md', style: 'min-height:240px; font-family: var(--mono); font-size:12px;' });
+  const ta = el('textarea', { style: 'min-height:240px; font-family: var(--mono); font-size:12px;' });
   ta.value = md0;
 
   const preview = el('div', {
@@ -155,8 +153,7 @@ function openEditor(candidate) {
   });
 
   const chat = el('textarea', {
-    id: 'chat',
-    placeholder: 'AI와 함께 수정하기(coming soon). 예: "Guardrails를 더 구체적으로 써줘"',
+    placeholder: 'AI chat (next). 예: "이 스킬을 더 구체화해줘"',
     style: 'min-height:90px; font-family: var(--sans); font-size:12px;',
   });
 
@@ -165,7 +162,6 @@ function openEditor(candidate) {
       el('div', {}, [el('strong', {}, [`Edit skill.md — ${candidate.name}`])]),
       el('button', { class: 'btn secondary', onClick: () => (modal.style.display = 'none') }, ['Close']),
     ]),
-    el('div', { class: 'hint' }, ['초안이 열렸어. 수정하고 Save 누르면 skills/에 저장돼.']),
     el('div', { class: 'row', style: 'gap:12px; align-items:flex-start; margin-top:10px;' }, [
       el('div', { style: 'flex:1;' }, [el('label', {}, ['Markdown editor']), ta]),
       el('div', { style: 'flex:1;' }, [el('label', {}, ['Preview']), preview]),
@@ -187,7 +183,7 @@ function openEditor(candidate) {
     ]),
     el('label', { style: 'margin-top:12px;' }, ['AI helper (next)']),
     chat,
-    el('div', { class: 'hint' }, ['다음 단계에서 API Key(BYOK) 넣고, 이 영역으로 “광역 업데이트/리라이팅”을 하게 만들 거야.']),
+    el('div', { class: 'hint' }, ['Setup에서 API Key를 넣으면, 여기서 AI로 광역 수정/리라이팅을 하게 만들 거야.']),
   ]);
 
   modal.appendChild(card);
@@ -210,27 +206,71 @@ function renderCandidates(candidates) {
           ]),
           el('button', { class: 'btn', onClick: () => openEditor(c) }, ['Open']),
         ]),
-        el('div', { class: 'hint' }, ['Evidence: ', (c.evidence || []).map((e) => String(e.file).split(/[/\\]/).pop()).join(', ') || '-']),
       ])
     );
   }
 }
 
-async function runScanFromFolderSelection(fileList) {
+async function ensureSetup() {
+  const r = await getJSON('/api/config');
+  const cfg = r.ok ? r.config : {};
+  const needs = !cfg.outputDir || !cfg.apiKeySet;
+  if (!needs) return;
+
+  modal.innerHTML = '';
+  modal.style.display = 'flex';
+
+  const outputDirEl = el('input', { placeholder: 'Output folder (e.g., C:\\Users\\You\\IndexFox_Out)' });
+  outputDirEl.value = cfg.outputDir || '';
+
+  const apiKeyEl = el('input', { placeholder: 'OpenAI API Key (BYOK)', type: 'password' });
+
+  const card = el('div', { class: 'modalCard' }, [
+    el('div', { class: 'modalTop' }, [el('strong', {}, ['IndexFox setup (one-time)'])]),
+    el('div', { class: 'hint' }, ['1) Choose output folder (IndexFox writes everything locally there)']),
+    el('div', { class: 'row' }, [
+      outputDirEl,
+      el('button', {
+        class: 'btn secondary',
+        onClick: async () => {
+          const p = await postJSON('/api/pick_folder', {});
+          if (p.ok && p.path) outputDirEl.value = p.path;
+          else alert('Folder picker failed.');
+        },
+      }, ['Pick…']),
+    ]),
+    el('div', { class: 'hint', style: 'margin-top:10px;' }, ['2) API Key (used only for LLM calls; outputs stay local)']),
+    apiKeyEl,
+    el('div', { class: 'row', style: 'margin-top:12px; justify-content:flex-end;' }, [
+      el('button', {
+        class: 'btn',
+        onClick: async () => {
+          const out = outputDirEl.value.trim();
+          if (!out) return alert('Choose an output folder.');
+          const r2 = await postJSON('/api/config', { outputDir: out, apiKey: apiKeyEl.value.trim() });
+          if (!r2.ok) return alert('Failed to save config');
+          modal.style.display = 'none';
+        },
+      }, ['Save setup']),
+    ]),
+  ]);
+
+  modal.appendChild(card);
+}
+
+async function runScan() {
   setState('starting…');
   setProgress(0);
-  msg.textContent = 'Starting scan…';
+  msg.textContent = 'Select a folder…';
 
-  const files = Array.from(fileList).slice(0, 5000).map((f) => {
-    const rel = f.webkitRelativePath || f.name;
-    const ext = ('.' + (f.name.split('.').pop() || '')).toLowerCase();
-    return { path: rel, name: f.name, ext, size: f.size };
-  });
+  const picked = await postJSON('/api/pick_folder', {});
+  if (!picked.ok || !picked.path) {
+    setState('error');
+    msg.textContent = 'Folder picking cancelled/failed.';
+    return;
+  }
 
-  // show immediate preview (names)
-  renderFileList(files.map((f) => ({ name: f.path, ext: f.ext })));
-
-  const start = await postJSON('/api/scan_files', { files });
+  const start = await postJSON('/api/scan', { paths: [picked.path] });
   if (!start.ok) {
     msg.textContent = `Failed: ${start.error || 'unknown_error'}`;
     setState('error');
@@ -238,7 +278,6 @@ async function runScanFromFolderSelection(fileList) {
   }
 
   const jobId = start.jobId;
-
   const tick = async () => {
     const r = await getJSON(`/api/job/${jobId}`);
     if (!r.ok) {
@@ -246,24 +285,19 @@ async function runScanFromFolderSelection(fileList) {
       setState('error');
       return;
     }
-
     const job = r.job;
     msg.textContent = job.message;
     setProgress(job.progress);
     setState(job.status);
-
-    if (job.status !== 'done' && job.status !== 'error') setTimeout(tick, 200);
+    if (job.status !== 'done' && job.status !== 'error') setTimeout(tick, 250);
     else if (job.status === 'done') {
       setState('done', true);
+      renderFileList(job.result?.fileList || []);
       renderCandidates(job.result?.candidates || []);
     }
   };
-
   tick();
 }
 
-pickBtn.addEventListener('click', () => folderInput.click());
-folderInput.addEventListener('change', () => {
-  if (!folderInput.files || folderInput.files.length === 0) return;
-  runScanFromFolderSelection(folderInput.files);
-});
+pickBtn.addEventListener('click', runScan);
+ensureSetup();

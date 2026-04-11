@@ -86,13 +86,12 @@
         <label>Folder</label>
         <div class="row" style="margin-top:6px;">
           <button class="btn" id="pickBtn">Select folder…</button>
-          <input id="folderInput" type="file" webkitdirectory directory multiple style="display:none" />
-          <div class="pill" id="state">idle</div>
+          <div class="pill" id="state">ready</div>
         </div>
         <div class="status">
           <div style="flex:1;">
             <div class="bar"><div id="bar"></div></div>
-            <div class="hint" id="msg">Pick folders, then scan. (v0 simulates progress; real scanning next.)</div>
+            <div class="hint" id="msg">Select folder → IndexFox parses locally → skill candidates appear.</div>
           </div>
         </div>
         <div class="hint">
