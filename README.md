@@ -26,13 +26,33 @@ IndexFox is a **local-first** CLI that scans your folders (Downloads/Documents/e
 - BYOK (bring your own key) for cloud LLM usage.
 - Default sensitivity: `internal`.
 
-## Quickstart
-```bash
-# (placeholder) install method TBD
-indexfox scan --path ~/Downloads --path ~/Documents
+## Requirements
+- **Node.js 20+** (Windows/macOS/Linux)
 
-# then choose a candidate and co-author a skill
-indexfox skill init
+## Quickstart (from source)
+```bash
+git clone https://github.com/OpenFlow-JW/indexfox.git
+cd indexfox
+npm install
+
+# start local UI
+node ./bin/indexfox.mjs serve
+# open: http://127.0.0.1:4317
+```
+
+### Windows note (PowerShell)
+If you see `running scripts is disabled`, run:
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+```
+
+## CLI (optional)
+```bash
+# scan a folder (writes outputs locally)
+node ./bin/indexfox.mjs scan --path <folder>
+
+# co-author a skill in terminal
+node ./bin/indexfox.mjs skill coauthor
 ```
 
 ## Roadmap (short)
