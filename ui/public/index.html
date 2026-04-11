@@ -21,7 +21,7 @@
     .wrap { max-width: 920px; margin: 0 auto; padding: 28px 18px 40px; }
     .top { display:flex; gap:14px; align-items:flex-start; justify-content:space-between; }
     .brand { display:flex; gap:12px; align-items:center; }
-    .logo { width:38px; height:38px; border-radius: 12px; background: linear-gradient(135deg, rgba(255,176,32,0.95), rgba(255,176,32,0.35)); box-shadow: 0 10px 30px rgba(255,176,32,0.18); display:flex; align-items:center; justify-content:center; font-weight:800; color:#1b1200; }
+    .logo { width:38px; height:38px; border-radius: 12px; box-shadow: 0 10px 30px rgba(255,176,32,0.18); overflow:hidden; }
     h1 { font-size: 20px; margin:0; }
     .tag { margin:4px 0 0; color: var(--muted); font-size: 13px; }
     .quote { margin: 14px 0 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,0.03); color: var(--muted); font-size: 13px; }
@@ -69,7 +69,7 @@
     <div class="top">
       <div>
         <div class="brand">
-          <div class="logo">IF</div>
+          <div class="logo"><img src="/indexfox-logo.jpg" alt="IndexFox" style="width:38px;height:38px;border-radius:12px;display:block;" /></div>
           <div>
             <h1>IndexFox</h1>
             <div class="tag">Local-first doc scout → knowledge · workflows · skills</div>
