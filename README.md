@@ -11,12 +11,15 @@ IndexFox is a **local-first** CLI that scans your folders (Downloads/Documents/e
 > Viral-first premise: point IndexFox at a messy folder → get order, fast.
 
 ## What it does (v0)
-- Scan selected folders (multiple paths)
-- Extract lightweight text from common office formats (PPTX/XLSX/PDF/DOCX/MD/TXT)
-- Produce:
-  - `IDENTITY.md` (your work profile: primary role + secondary roles)
-  - `skill_candidates/` (proposed skills)
-  - A guided wizard to finalize a candidate into a real `skill.md` (≈10 min)
+- Pick one or more folders
+- Index files (PPTX/XLSX/PDF/DOCX/MD/TXT)
+- Propose **skill candidates**
+- Start a guided Q&A (≈10 min) → finalize a reusable `skill.md`
+
+### Outputs (kept minimal)
+- `IDENTITY.md` (visible)
+- `skills/*.skill.md` (final skills)
+- `.indexfox/` (hidden cache: candidates/evidence/logs)
 
 ## Privacy / Data
 - Local-first: outputs are written **only to your machine**.

@@ -5,8 +5,9 @@ function help() {
 
 Usage:
   indexfox serve
-  indexfox scan --path <folder> [--path <folder> ...]
+  indexfox scan --path <folder> [--path <folder> ...] [--out <folder>]
   indexfox skill init
+  indexfox skill coauthor [--candidate <id>]
 
 Notes:
   - Local-first outputs will be written under ./indexfox_out (default).
@@ -32,12 +33,47 @@ if (cmd === 'serve') {
 }
 
 if (cmd === 'scan') {
-  console.log('scan: not implemented yet (scaffold).');
+  const { scan } = await import('../src/scan.mjs');
+  const paths = [];
+  let outDir = process.cwd();
+  for (let i = 1; i < args.length; i++) {
+    if (args[i] === '--path' && args[i + 1]) {
+      paths.push(args[i + 1]);
+      i++;
+      continue;
+    }
+    if (args[i] === '--out' && args[i + 1]) {
+      outDir = args[i + 1];
+      i++;
+      continue;
+    }
+  }
+  if (!paths.length) {
+    console.error('scan: provide at least one --path');
+    process.exit(1);
+  }
+  const res = scan({ paths, outDir });
+  console.log(JSON.stringify({ ok: true, totals: res.totals, candidates: res.candidates, identity: res.identity }, null, 2));
   process.exit(0);
 }
 
 if (cmd === 'skill' && args[1] === 'init') {
-  console.log('skill init: not implemented yet (scaffold).');
+  // placeholder for future: pick candidate + start wizard
+  console.log('skill init: use `indexfox skill coauthor` for now.');
+  process.exit(0);
+}
+
+if (cmd === 'skill' && args[1] === 'coauthor') {
+  const { coauthorSkill } = await import('../src/wizard.mjs');
+  let candidateId = null;
+  for (let i = 2; i < args.length; i++) {
+    if (args[i] === '--candidate' && args[i + 1]) {
+      candidateId = args[i + 1];
+      i++;
+    }
+  }
+  const r = await coauthorSkill({ outDir: process.cwd(), candidateId });
+  console.log(`\nSaved: ${r.outPath}`);
   process.exit(0);
 }
 

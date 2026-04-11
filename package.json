@@ -9,6 +9,9 @@
   },
   "scripts": {
     "start": "node ./bin/indexfox.mjs",
+    "serve": "node ./bin/indexfox.mjs serve",
+    "scan": "node ./bin/indexfox.mjs scan --path ./",
+    "harness": "node ./harness/run.mjs",
     "lint": "node -c ./bin/indexfox.mjs"
   }
 }

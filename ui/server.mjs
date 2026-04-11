@@ -25,7 +25,7 @@ function contentType(p) {
 // Very small in-memory job store (v0)
 const jobs = new Map();
 
-function newJob(paths) {
+async function newJob(paths) {
   const id = Math.random().toString(16).slice(2);
   const job = {
     id,
@@ -38,27 +38,38 @@ function newJob(paths) {
   };
   jobs.set(id, job);
 
-  // v0: simulate scan work (replace with real scan pipeline)
+  // v0: real scan (fast) + friendly progress messages
   const steps = [
-    'Indexing files…',
-    'Extracting text (PPTX/XLSX/PDF/DOCX)…',
-    'Finding repeated patterns…',
-    'Drafting skill candidates…',
-    'Writing indexfox_out/…',
-    'Done.',
+    { p: 10, msg: 'Indexing files…' },
+    { p: 35, msg: 'Extracting signals…' },
+    { p: 60, msg: 'Finding patterns…' },
+    { p: 80, msg: 'Drafting skill candidates…' },
+    { p: 95, msg: 'Writing .indexfox/…' },
   ];
 
-  let i = 0;
-  const timer = setInterval(() => {
-    i++;
-    job.progress = Math.min(100, Math.floor((i / steps.length) * 100));
-    job.message = steps[Math.min(i - 1, steps.length - 1)];
-    if (i >= steps.length) {
-      clearInterval(timer);
+  // run in background
+  (async () => {
+    for (const s of steps) {
+      job.progress = s.p;
+      job.message = s.msg;
+      // small delay for UI
+      await new Promise((r) => setTimeout(r, 180));
+    }
+
+    try {
+      const { scan } = await import('../src/scan.mjs');
+      const res = scan({ paths, outDir: process.cwd() });
+      job.result = { totals: res.totals, candidates: res.candidates, identity: res.identity };
+      job.progress = 100;
+      job.message = 'Done.';
       job.status = 'done';
       job.finishedAt = Date.now();
+    } catch (e) {
+      job.status = 'error';
+      job.message = `Error: ${e?.message || e}`;
+      job.finishedAt = Date.now();
     }
-  }, 650);
+  })();
 
   return job;
 }
@@ -71,7 +82,7 @@ const server = http.createServer(async (req, res) => {
     if (u.pathname === '/api/scan' && req.method === 'POST') {
       let raw = '';
       req.on('data', (d) => (raw += d));
-      req.on('end', () => {
+      req.on('end', async () => {
         let body;
         try {
           body = raw ? JSON.parse(raw) : {};
@@ -79,7 +90,7 @@ const server = http.createServer(async (req, res) => {
           return send(res, 400, { 'content-type': 'application/json' }, JSON.stringify({ ok: false, error: 'invalid_json' }));
         }
         const paths = Array.isArray(body.paths) ? body.paths.filter(Boolean) : [];
-        const job = newJob(paths);
+        const job = await newJob(paths);
         return send(res, 200, { 'content-type': 'application/json' }, JSON.stringify({ ok: true, jobId: job.id }));
       });
       return;
