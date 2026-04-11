@@ -46,13 +46,18 @@ If you see `running scripts is disabled`, run:
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 ```
 
-## CLI (optional)
-```bash
-# scan a folder (writes outputs locally)
-node ./bin/indexfox.mjs scan --path <folder>
+## CLI (AI-friendly)
+The CLI is designed to be called from tools like **Claude Code** / **Codex** (stable JSON output, file-based outputs).
 
-# co-author a skill in terminal
-node ./bin/indexfox.mjs skill coauthor
+```bash
+# 1) scan a folder (writes outputs locally + prints JSON)
+node ./bin/indexfox.mjs scan --path <folder> --out <outputDir> --json
+
+# 2) draft a skill from a candidate (Markdown to stdout)
+node ./bin/indexfox.mjs skill draft --candidate <id> --out <outputDir>
+
+# 3) save a skill from stdin (useful for AI agents)
+cat my.skill.md | node ./bin/indexfox.mjs skill save --name <id> --stdin --out <outputDir> --json
 ```
 
 ## Roadmap (short)

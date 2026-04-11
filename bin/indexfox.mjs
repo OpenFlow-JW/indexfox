@@ -5,8 +5,12 @@ function help() {
 
 Usage:
   indexfox serve
-  indexfox scan --path <folder> [--path <folder> ...] [--out <folder>]
-  indexfox skill init
+  indexfox scan --path <folder> [--path <folder> ...] [--out <folder>] [--json]
+
+  indexfox skill draft --candidate <id> [--out <folder>] [--json]
+  indexfox skill save --name <id> --stdin [--out <folder>] [--json]
+
+  # legacy (interactive)
   indexfox skill coauthor [--candidate <id>]
 
 Notes:
@@ -46,6 +50,7 @@ async function main() {
     const { scan } = await import('../src/scan.mjs');
     const paths = [];
     let outDir = process.cwd();
+    let jsonOnly = false;
     for (let i = 1; i < args.length; i++) {
       if (args[i] === '--path' && args[i + 1]) {
         paths.push(args[i + 1]);
@@ -57,18 +62,95 @@ async function main() {
         i++;
         continue;
       }
+      if (args[i] === '--json') jsonOnly = true;
     }
     if (!paths.length) {
       console.error('scan: provide at least one --path');
       process.exit(1);
     }
     const res = scan({ paths, outDir });
-    console.log(JSON.stringify({ ok: true, totals: res.totals, candidates: res.candidates, identity: res.identity }, null, 2));
+    const payload = { ok: true, outDir, totals: res.totals, candidates: res.candidates, identity: res.identity };
+    console.log(JSON.stringify(payload, null, jsonOnly ? 0 : 2));
     return;
   }
 
-  if (cmd === 'skill' && args[1] === 'init') {
-    console.log('skill init: use `indexfox skill coauthor` for now.');
+  if (cmd === 'skill' && args[1] === 'draft') {
+    const { findCandidate } = await import('../src/candidates_store.mjs');
+    const { draftSkillMarkdown } = await import('../src/draft.mjs');
+
+    let outDir = process.cwd();
+    let candidateId = null;
+    let jsonOnly = false;
+    for (let i = 2; i < args.length; i++) {
+      if (args[i] === '--candidate' && args[i + 1]) {
+        candidateId = args[i + 1];
+        i++;
+        continue;
+      }
+      if (args[i] === '--out' && args[i + 1]) {
+        outDir = args[i + 1];
+        i++;
+        continue;
+      }
+      if (args[i] === '--json') jsonOnly = true;
+    }
+    if (!candidateId) {
+      console.error('skill draft: provide --candidate <id>');
+      process.exit(1);
+    }
+    const c = await findCandidate(outDir, candidateId);
+    if (!c) {
+      console.error(`skill draft: candidate not found: ${candidateId} (out=${outDir})`);
+      process.exit(1);
+    }
+    const md = draftSkillMarkdown({ id: c.id, name: c.name });
+    if (jsonOnly) {
+      console.log(JSON.stringify({ ok: true, candidate: { id: c.id, name: c.name }, markdown: md }));
+    } else {
+      process.stdout.write(md);
+    }
+    return;
+  }
+
+  if (cmd === 'skill' && args[1] === 'save') {
+    const fs = await import('node:fs/promises');
+    const path = await import('node:path');
+
+    let outDir = process.cwd();
+    let name = null;
+    let stdin = false;
+    let jsonOnly = false;
+    for (let i = 2; i < args.length; i++) {
+      if (args[i] === '--name' && args[i + 1]) {
+        name = args[i + 1];
+        i++;
+        continue;
+      }
+      if (args[i] === '--out' && args[i + 1]) {
+        outDir = args[i + 1];
+        i++;
+        continue;
+      }
+      if (args[i] === '--stdin') stdin = true;
+      if (args[i] === '--json') jsonOnly = true;
+    }
+    if (!name || !stdin) {
+      console.error('skill save: require --name <id> --stdin');
+      process.exit(1);
+    }
+
+    const chunks = [];
+    for await (const ch of process.stdin) chunks.push(ch);
+    const content = Buffer.concat(chunks).toString('utf8');
+
+    const safe = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_\-]+/g, '').slice(0, 64) || 'skill';
+    const destDir = path.join(outDir, 'skills');
+    await fs.mkdir(destDir, { recursive: true });
+    const outPath = path.join(destDir, `${safe}.skill.md`);
+    await fs.writeFile(outPath, content, 'utf8');
+
+    const payload = { ok: true, outPath };
+    console.log(JSON.stringify(payload, null, jsonOnly ? 0 : 2));
     return;
   }
 
