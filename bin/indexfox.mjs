@@ -4,6 +4,7 @@ function help() {
   console.log(`IndexFox (v0)
 
 Usage:
+  indexfox serve
   indexfox scan --path <folder> [--path <folder> ...]
   indexfox skill init
 
@@ -20,6 +21,16 @@ if (args.length === 0 || args.includes('-h') || args.includes('--help')) {
 }
 
 const cmd = args[0];
+if (cmd === 'serve') {
+  const { spawn } = await import('node:child_process');
+  const p = spawn(process.execPath, [new URL('../ui/server.mjs', import.meta.url).pathname], {
+    stdio: 'inherit',
+    env: process.env,
+  });
+  p.on('exit', (code) => process.exit(code ?? 0));
+  process.exit(0);
+}
+
 if (cmd === 'scan') {
   console.log('scan: not implemented yet (scaffold).');
   process.exit(0);

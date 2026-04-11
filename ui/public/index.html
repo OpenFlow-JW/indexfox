@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>IndexFox</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #111938;
+      --text: #e8ecff;
+      --muted: #a7b1e3;
+      --accent: #ffb020;
+      --ok: #3ddc97;
+      --danger: #ff5a5f;
+      --line: rgba(255,255,255,0.08);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    body { margin:0; font-family: var(--sans); background: radial-gradient(1200px 800px at 20% 10%, rgba(255,176,32,0.10), transparent 60%), var(--bg); color: var(--text); }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 28px 18px 40px; }
+    .top { display:flex; gap:14px; align-items:flex-start; justify-content:space-between; }
+    .brand { display:flex; gap:12px; align-items:center; }
+    .logo { width:38px; height:38px; border-radius: 12px; background: linear-gradient(135deg, rgba(255,176,32,0.95), rgba(255,176,32,0.35)); box-shadow: 0 10px 30px rgba(255,176,32,0.18); display:flex; align-items:center; justify-content:center; font-weight:800; color:#1b1200; }
+    h1 { font-size: 20px; margin:0; }
+    .tag { margin:4px 0 0; color: var(--muted); font-size: 13px; }
+    .quote { margin: 14px 0 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,0.03); color: var(--muted); font-size: 13px; }
+
+    .grid { display:grid; grid-template-columns: 1.1fr 0.9fr; gap: 14px; margin-top: 16px; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+    .card { border: 1px solid var(--line); border-radius: 16px; background: rgba(17,25,56,0.55); backdrop-filter: blur(8px); padding: 14px; }
+    .card h2 { font-size: 14px; margin:0 0 10px; color: #d9deff; }
+    label { display:block; font-size: 12px; color: var(--muted); margin: 8px 0 6px; }
+    textarea, input { width:100%; border: 1px solid var(--line); border-radius: 12px; padding: 10px 11px; background: rgba(0,0,0,0.25); color: var(--text); font-family: var(--mono); font-size: 12px; box-sizing:border-box; }
+    textarea { min-height: 92px; resize: vertical; }
+    .row { display:flex; gap:10px; align-items:center; }
+    .btn { appearance:none; border:1px solid rgba(255,176,32,0.35); background: rgba(255,176,32,0.14); color: var(--text); padding: 9px 12px; border-radius: 12px; cursor:pointer; font-weight:700; }
+    .btn:disabled { opacity:0.45; cursor:not-allowed; }
+    .btn.secondary { border-color: var(--line); background: rgba(255,255,255,0.04); font-weight:600; }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.35; }
+
+    .status { display:flex; gap:10px; align-items:center; margin-top: 10px; }
+    .pill { font-size: 12px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+    .pill.ok { border-color: rgba(61,220,151,0.35); color: rgba(61,220,151,0.95); background: rgba(61,220,151,0.08); }
+
+    .bar { height: 10px; border-radius: 999px; background: rgba(255,255,255,0.06); overflow:hidden; border: 1px solid var(--line); }
+    .bar > div { height:100%; width:0%; background: linear-gradient(90deg, rgba(255,176,32,0.95), rgba(61,220,151,0.85)); transition: width 260ms ease; }
+    .mono { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+
+    .cards { display:grid; gap:10px; }
+    .result { border: 1px dashed rgba(255,255,255,0.15); border-radius: 14px; padding: 12px; background: rgba(0,0,0,0.18); }
+    .result h3 { margin:0 0 8px; font-size: 13px; }
+    .result ul { margin:0; padding-left: 18px; color: var(--muted); font-size: 12px; line-height: 1.4; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <div class="brand">
+          <div class="logo">IF</div>
+          <div>
+            <h1>IndexFox</h1>
+            <div class="tag">Local-first doc scout → knowledge · workflows · skills</div>
+          </div>
+        </div>
+        <div class="quote">“Out of clutter, find simplicity.” — Steve Jobs</div>
+      </div>
+      <div class="mono">v0 UI scaffold</div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Scan folders</h2>
+        <label>Folder paths (one per line)</label>
+        <textarea id="paths" placeholder="/Users/me/Downloads\n/Users/me/Documents"></textarea>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn" id="scanBtn">Scan</button>
+          <button class="btn secondary" id="demoBtn">Demo paths</button>
+          <div class="pill" id="state">idle</div>
+        </div>
+        <div class="status">
+          <div style="flex:1;">
+            <div class="bar"><div id="bar"></div></div>
+            <div class="hint" id="msg">Pick folders, then scan. (v0 simulates progress; real scanning next.)</div>
+          </div>
+        </div>
+        <div class="hint">
+          Tip: Start with your <span class="mono">Downloads</span> folder. IndexFox will propose skill candidates, then guide you (≈10 min) to finalize a <span class="mono">skill.md</span>.
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Results (preview)</h2>
+        <div class="cards">
+          <div class="result">
+            <h3>Knowledge highlights</h3>
+            <ul>
+              <li>Key themes found across documents</li>
+              <li>Recurring decision criteria</li>
+            </ul>
+          </div>
+          <div class="result">
+            <h3>Workflow patterns</h3>
+            <ul>
+              <li>Repeated steps (draft → review → revise)</li>
+              <li>Hand-offs to other teams</li>
+            </ul>
+          </div>
+          <div class="result">
+            <h3>Skill candidates</h3>
+            <ul>
+              <li>Draft skill ideas extracted from your docs</li>
+              <li>Next: guided Q&A to finalize skill.md</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hint" style="margin-top: 14px;">
+      Privacy: local-first outputs only. BYOK for cloud LLM calls.
+    </div>
+  </div>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

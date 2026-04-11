@@ -1,0 +1,6 @@
+# secrets
+.ssh_deploy_key
+.ssh_deploy_key.pub
+
+# output
+indexfox_out/
