@@ -1,0 +1,14 @@
+{
+  "name": "indexfox",
+  "version": "0.0.1",
+  "type": "module",
+  "private": true,
+  "description": "Local-first doc scout: find knowledge, workflows, and co-author skills from messy folders.",
+  "bin": {
+    "indexfox": "./bin/indexfox.mjs"
+  },
+  "scripts": {
+    "start": "node ./bin/indexfox.mjs",
+    "lint": "node -c ./bin/indexfox.mjs"
+  }
+}
