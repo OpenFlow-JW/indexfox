@@ -24,12 +24,16 @@ if (args.length === 0 || args.includes('-h') || args.includes('--help')) {
 const cmd = args[0];
 if (cmd === 'serve') {
   const { spawn } = await import('node:child_process');
-  const p = spawn(process.execPath, [new URL('../ui/server.mjs', import.meta.url).pathname], {
+  const { fileURLToPath } = await import('node:url');
+  const serverPath = fileURLToPath(new URL('../ui/server.mjs', import.meta.url));
+
+  const p = spawn(process.execPath, [serverPath], {
     stdio: 'inherit',
     env: process.env,
   });
+
+  // keep the parent process alive; forward child exit code
   p.on('exit', (code) => process.exit(code ?? 0));
-  process.exit(0);
 }
 
 if (cmd === 'scan') {
