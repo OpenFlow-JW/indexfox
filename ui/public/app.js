@@ -1,6 +1,5 @@
-const scanBtn = document.getElementById('scanBtn');
-const demoBtn = document.getElementById('demoBtn');
-const pathsEl = document.getElementById('paths');
+const pickBtn = document.getElementById('pickBtn');
+const folderInput = document.getElementById('folderInput');
 const bar = document.getElementById('bar');
 const msg = document.getElementById('msg');
 const state = document.getElementById('state');
@@ -44,10 +43,7 @@ function el(tag, attrs = {}, children = []) {
 }
 
 function escapeHtml(s) {
-  return String(s)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;');
+  return String(s).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 }
 
 function simpleMarkdownToHtml(md) {
@@ -79,11 +75,8 @@ function simpleMarkdownToHtml(md) {
       inList = false;
       continue;
     }
-    if (line.trim() === '') {
-      out.push('<div style="height:8px"></div>');
-    } else {
-      out.push(`<p>${escapeHtml(line)}</p>`);
-    }
+    if (line.trim() === '') out.push('<div style="height:8px"></div>');
+    else out.push(`<p>${escapeHtml(line)}</p>`);
   }
   if (inList) out.push('</ul>');
   return out.join('\n');
@@ -127,17 +120,18 @@ parameters: []
 
 function renderFileList(fileList) {
   filesEl.innerHTML = '';
-  const list = (fileList || []).slice(0, 80);
+  const list = (fileList || []).slice(0, 120);
   if (!list.length) {
     filesEl.appendChild(el('div', { class: 'hint' }, ['(no files preview)']));
     return;
   }
   for (const f of list) {
-    const row = el('div', { class: 'fileRow' }, [
-      el('div', { class: 'fileName' }, [f.name || '']),
-      el('div', { class: 'fileMeta' }, [f.ext || '']),
-    ]);
-    filesEl.appendChild(row);
+    filesEl.appendChild(
+      el('div', { class: 'fileRow' }, [
+        el('div', { class: 'fileName' }, [f.name || '']),
+        el('div', { class: 'fileMeta' }, [f.ext || '']),
+      ])
+    );
   }
 }
 
@@ -147,12 +141,12 @@ function openEditor(candidate) {
 
   const md0 = draftSkillMarkdown(candidate);
 
-  const ta = el('textarea', { id: 'md', style: 'min-height:220px; font-family: var(--mono); font-size:12px;' }, []);
+  const ta = el('textarea', { id: 'md', style: 'min-height:240px; font-family: var(--mono); font-size:12px;' });
   ta.value = md0;
 
   const preview = el('div', {
     style:
-      'border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:10px; background:rgba(0,0,0,0.18); color: var(--muted); overflow:auto; max-height:220px;',
+      'border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:10px; background:rgba(0,0,0,0.18); color: var(--muted); overflow:auto; max-height:240px;',
   });
   preview.innerHTML = simpleMarkdownToHtml(md0);
 
@@ -171,29 +165,29 @@ function openEditor(candidate) {
       el('div', {}, [el('strong', {}, [`Edit skill.md — ${candidate.name}`])]),
       el('button', { class: 'btn secondary', onClick: () => (modal.style.display = 'none') }, ['Close']),
     ]),
-    el('div', { class: 'hint' }, ['Candidate를 클릭하면 초안이 열리고, 수정 후 바로 저장할 수 있어.']),
+    el('div', { class: 'hint' }, ['초안이 열렸어. 수정하고 Save 누르면 skills/에 저장돼.']),
     el('div', { class: 'row', style: 'gap:12px; align-items:flex-start; margin-top:10px;' }, [
       el('div', { style: 'flex:1;' }, [el('label', {}, ['Markdown editor']), ta]),
       el('div', { style: 'flex:1;' }, [el('label', {}, ['Preview']), preview]),
     ]),
     el('div', { class: 'row', style: 'margin-top:10px; justify-content:flex-end;' }, [
-      el('button', {
-        class: 'btn',
-        onClick: async () => {
-          const content = ta.value;
-          const r = await postJSON('/api/skill/save_markdown', { name: candidate.id, content });
-          if (!r.ok) {
-            alert(`Save failed: ${r.error || 'unknown_error'}`);
-            return;
-          }
-          alert(`Saved!\n${r.outPath}`);
-          modal.style.display = 'none';
+      el(
+        'button',
+        {
+          class: 'btn',
+          onClick: async () => {
+            const r = await postJSON('/api/skill/save_markdown', { name: candidate.id, content: ta.value });
+            if (!r.ok) return alert(`Save failed: ${r.error || 'unknown_error'}`);
+            alert(`Saved!\n${r.outPath}`);
+            modal.style.display = 'none';
+          },
         },
-      }, ['Save skill.md']),
+        ['Save skill.md']
+      ),
     ]),
     el('label', { style: 'margin-top:12px;' }, ['AI helper (next)']),
     chat,
-    el('div', { class: 'hint' }, ['다음 단계에서 BYOK API Key를 넣고, 이 채팅이 “광역 업데이트/리라이팅”을 도와주게 만들 거야.']),
+    el('div', { class: 'hint' }, ['다음 단계에서 API Key(BYOK) 넣고, 이 영역으로 “광역 업데이트/리라이팅”을 하게 만들 거야.']),
   ]);
 
   modal.appendChild(card);
@@ -207,41 +201,39 @@ function renderCandidates(candidates) {
   }
 
   for (const c of candidates) {
-    const item = el('div', { class: 'cand' }, [
-      el('div', { class: 'candTop' }, [
-        el('div', {}, [
-          el('div', { class: 'candTitle' }, [`${c.rank}. ${c.name}`]),
-          el('div', { class: 'mono' }, [`id: ${c.id}  |  confidence: ${Math.round((c.confidence || 0) * 100)}%`]),
+    resultsEl.appendChild(
+      el('div', { class: 'cand' }, [
+        el('div', { class: 'candTop' }, [
+          el('div', {}, [
+            el('div', { class: 'candTitle' }, [`${c.rank}. ${c.name}`]),
+            el('div', { class: 'mono' }, [`id: ${c.id}  |  confidence: ${Math.round((c.confidence || 0) * 100)}%`]),
+          ]),
+          el('button', { class: 'btn', onClick: () => openEditor(c) }, ['Open']),
         ]),
-        el('button', { class: 'btn', onClick: () => openEditor(c) }, ['Open']),
-      ]),
-      el('div', { class: 'hint' }, ['Evidence: ', (c.evidence || []).map((e) => e.file.split('/').slice(-1)[0]).join(', ') || '-']),
-    ]);
-    resultsEl.appendChild(item);
+        el('div', { class: 'hint' }, ['Evidence: ', (c.evidence || []).map((e) => String(e.file).split(/[/\\]/).pop()).join(', ') || '-']),
+      ])
+    );
   }
 }
 
-demoBtn.addEventListener('click', () => {
-  pathsEl.value = ['C:\\Users\\Me\\Downloads', 'C:\\Users\\Me\\Documents'].join('\n');
-});
-
-scanBtn.addEventListener('click', async () => {
-  const paths = pathsEl.value.split('\n').map((s) => s.trim()).filter(Boolean);
-  if (!paths.length) {
-    msg.textContent = 'Add at least one folder path.';
-    return;
-  }
-
-  scanBtn.disabled = true;
+async function runScanFromFolderSelection(fileList) {
   setState('starting…');
   setProgress(0);
   msg.textContent = 'Starting scan…';
 
-  const start = await postJSON('/api/scan', { paths });
+  const files = Array.from(fileList).slice(0, 5000).map((f) => {
+    const rel = f.webkitRelativePath || f.name;
+    const ext = ('.' + (f.name.split('.').pop() || '')).toLowerCase();
+    return { path: rel, name: f.name, ext, size: f.size };
+  });
+
+  // show immediate preview (names)
+  renderFileList(files.map((f) => ({ name: f.path, ext: f.ext })));
+
+  const start = await postJSON('/api/scan_files', { files });
   if (!start.ok) {
     msg.textContent = `Failed: ${start.error || 'unknown_error'}`;
     setState('error');
-    scanBtn.disabled = false;
     return;
   }
 
@@ -252,7 +244,6 @@ scanBtn.addEventListener('click', async () => {
     if (!r.ok) {
       msg.textContent = 'Job not found.';
       setState('error');
-      scanBtn.disabled = false;
       return;
     }
 
@@ -261,17 +252,18 @@ scanBtn.addEventListener('click', async () => {
     setProgress(job.progress);
     setState(job.status);
 
-    if (job.status !== 'done' && job.status !== 'error') {
-      setTimeout(tick, 250);
-    } else {
-      scanBtn.disabled = false;
-      if (job.status === 'done') {
-        setState('done', true);
-        renderFileList(job.result?.fileList || []);
-        renderCandidates(job.result?.candidates || []);
-      }
+    if (job.status !== 'done' && job.status !== 'error') setTimeout(tick, 200);
+    else if (job.status === 'done') {
+      setState('done', true);
+      renderCandidates(job.result?.candidates || []);
     }
   };
 
   tick();
+}
+
+pickBtn.addEventListener('click', () => folderInput.click());
+folderInput.addEventListener('change', () => {
+  if (!folderInput.files || folderInput.files.length === 0) return;
+  runScanFromFolderSelection(folderInput.files);
 });

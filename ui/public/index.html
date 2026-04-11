@@ -83,11 +83,10 @@
     <div class="grid">
       <div class="card">
         <h2>Scan folders</h2>
-        <label>Folder paths (one per line)</label>
-        <textarea id="paths" placeholder="/Users/me/Downloads\n/Users/me/Documents"></textarea>
-        <div class="row" style="margin-top:10px;">
-          <button class="btn" id="scanBtn">Scan</button>
-          <button class="btn secondary" id="demoBtn">Demo paths</button>
+        <label>Folder</label>
+        <div class="row" style="margin-top:6px;">
+          <button class="btn" id="pickBtn">Select folder…</button>
+          <input id="folderInput" type="file" webkitdirectory directory multiple style="display:none" />
           <div class="pill" id="state">idle</div>
         </div>
         <div class="status">

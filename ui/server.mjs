@@ -78,9 +78,59 @@ async function newJob(paths) {
   return job;
 }
 
+async function newJobFromClientFiles(clientFiles) {
+  const id = Math.random().toString(16).slice(2);
+  const job = {
+    id,
+    status: 'running',
+    progress: 0,
+    message: 'Starting…',
+    clientFilesCount: Array.isArray(clientFiles) ? clientFiles.length : 0,
+    startedAt: Date.now(),
+    finishedAt: null,
+  };
+  jobs.set(id, job);
+
+  (async () => {
+    try {
+      job.progress = 35;
+      job.message = 'Reading folder selection…';
+      await new Promise((r) => setTimeout(r, 120));
+
+      const { proposeCandidates } = await import('../src/candidates.mjs');
+      const files = (Array.isArray(clientFiles) ? clientFiles : []).slice(0, 5000).map((f) => ({
+        path: String(f.path || f.name || ''),
+        ext: String(f.ext || '').toLowerCase(),
+        size: Number(f.size || 0),
+        mtimeMs: Number(f.mtimeMs || Date.now()),
+      }));
+
+      const candidates = proposeCandidates(files);
+      job.result = {
+        totals: { files: files.length },
+        fileList: files.slice(0, 200).map((f) => ({ name: f.path.split(/[/\\]/).pop(), ext: f.ext })),
+        candidates,
+        identity: null,
+      };
+
+      job.progress = 100;
+      job.message = 'Done.';
+      job.status = 'done';
+      job.finishedAt = Date.now();
+    } catch (e) {
+      job.status = 'error';
+      job.message = `Error: ${e?.message || e}`;
+      job.finishedAt = Date.now();
+    }
+  })();
+
+  return job;
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     const u = new URL(req.url, `http://${req.headers.host}`);
+
 
     // API
     if (u.pathname === '/api/scan' && req.method === 'POST') {
@@ -95,6 +145,24 @@ const server = http.createServer(async (req, res) => {
         }
         const paths = Array.isArray(body.paths) ? body.paths.filter(Boolean) : [];
         const job = await newJob(paths);
+        return send(res, 200, { 'content-type': 'application/json' }, JSON.stringify({ ok: true, jobId: job.id }));
+      });
+      return;
+    }
+
+    // Web folder picker flow (no path input): browser sends file list
+    if (u.pathname === '/api/scan_files' && req.method === 'POST') {
+      let raw = '';
+      req.on('data', (d) => (raw += d));
+      req.on('end', async () => {
+        let body;
+        try {
+          body = raw ? JSON.parse(raw) : {};
+        } catch {
+          return send(res, 400, { 'content-type': 'application/json' }, JSON.stringify({ ok: false, error: 'invalid_json' }));
+        }
+        const files = Array.isArray(body.files) ? body.files : [];
+        const job = await newJobFromClientFiles(files);
         return send(res, 200, { 'content-type': 'application/json' }, JSON.stringify({ ok: true, jobId: job.id }));
       });
       return;
