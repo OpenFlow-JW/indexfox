@@ -65,15 +65,17 @@ cat my.skill.md | node ./bin/indexfox.mjs skill save --name <id> --stdin --out <
 - Candidate dedupe + quality loop (internal harness)
 - Optional: LLM-assisted rewrite (BYOK)
 
-## Team / Enterprise (concept)
-- Personal graph visualizations are often low-signal.
-- The graph becomes valuable **after publishing/aggregating at the org level**: dedupe, standards, and knowledge network analysis.
-- Reference to explore: Gobi-style PKM network visualization (as a North Star for a future **IndexFox Team (Managed)** offering).
+## IndexFox Team (Managed) (future)
+IndexFox is optimized for individuals. A future **IndexFox Team (Managed)** offering would make it easy for a team/department to:
+- Publish and host `skill.md` at a shared endpoint
+- Manage submissions (ownership, permissions, versioning)
+- Dedupe similar skills and propose a standard
+- Produce lightweight weekly reports (what changed, what to standardize next)
 
 **Product ladder (proposed):**
 - **IndexFox** (this repo): personal, local-first, Apache-2.0 OSS.
-- **IndexFox Team (Managed)**: paid team version that hosts/publishes, manages submissions, runs network analysis, and helps standardize knowledge.
-- **AFO (Enterprise)**: organization-wide standardization + workflow composition + governance.
+- **IndexFox Team (Managed)**: paid, hosted, and operated.
+- **AFO (Enterprise)**: org-wide standardization + workflow composition + governance.
 
 ---
 
