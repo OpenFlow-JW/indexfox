@@ -62,8 +62,18 @@ cat my.skill.md | node ./bin/indexfox.mjs skill save --name <id> --stdin --out <
 
 ## Roadmap (short)
 - Better PPTX/XLSX extraction
-- Role presets (PM/Marketing/Strategy/Ops/HR…)
-- Export from Markdown → PPT outline / handoff message
+- Candidate dedupe + quality loop (internal harness)
+- Optional: LLM-assisted rewrite (BYOK)
+
+## Team / Enterprise (concept)
+- Personal graph visualizations are often low-signal.
+- The graph becomes valuable **after publishing/aggregating at the org level**: dedupe, standards, and knowledge network analysis.
+- Reference to explore: Gobi-style PKM network visualization (as a North Star for a future **IndexFox Team (Managed)** offering).
+
+**Product ladder (proposed):**
+- **IndexFox** (this repo): personal, local-first, Apache-2.0 OSS.
+- **IndexFox Team (Managed)**: paid team version that hosts/publishes, manages submissions, runs network analysis, and helps standardize knowledge.
+- **AFO (Enterprise)**: organization-wide standardization + workflow composition + governance.
 
 ---
 
