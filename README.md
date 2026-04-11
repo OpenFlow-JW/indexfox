@@ -15,9 +15,8 @@ IndexFox is a **local-first** CLI that scans your folders (Downloads/Documents/e
 - Extract lightweight text from common office formats (PPTX/XLSX/PDF/DOCX/MD/TXT)
 - Produce:
   - `IDENTITY.md` (your work profile: primary role + secondary roles)
-  - `doc_cards/` (1-page summaries)
   - `skill_candidates/` (proposed skills)
-  - A guided wizard to finalize a skill into `skill.md` (≈10 min)
+  - A guided wizard to finalize a candidate into a real `skill.md` (≈10 min)
 
 ## Privacy / Data
 - Local-first: outputs are written **only to your machine**.
@@ -40,4 +39,8 @@ indexfox skill init
 
 ---
 
-Looking for the older AFO experiments? See: https://github.com/OpenFlow-JW/agent-first-office
+## Relationship to AFO
+IndexFox helps you extract and co-author **skills** from messy folders.
+
+When you’re ready, **AFO (Agent‑First Office)** can use those skills to compose larger workflows and standardize them at the org level:
+- AFO repo: https://github.com/OpenFlow-JW/agent-first-office
