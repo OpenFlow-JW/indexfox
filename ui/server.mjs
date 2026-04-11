@@ -63,7 +63,7 @@ async function newJob(paths) {
     try {
       const { scan } = await import('../src/scan.mjs');
       const res = scan({ paths, outDir: outDir() });
-      job.result = { totals: res.totals, candidates: res.candidates, identity: res.identity };
+      job.result = { totals: res.totals, candidates: res.candidates, identity: res.identity, fileList: res.fileList };
       job.progress = 100;
       job.message = 'Done.';
       job.status = 'done';
@@ -143,6 +143,25 @@ const server = http.createServer(async (req, res) => {
         const { coauthorSkill } = await import('../src/wizard_web.mjs');
         const r = await coauthorSkill({ outDir: outDir(), draft: body.draft || {} });
         return send(res, 200, { 'content-type': 'application/json' }, JSON.stringify(r));
+      });
+      return;
+    }
+
+    if (u.pathname === '/api/skill/save_markdown' && req.method === 'POST') {
+      let raw = '';
+      req.on('data', (d) => (raw += d));
+      req.on('end', async () => {
+        let body;
+        try { body = raw ? JSON.parse(raw) : {}; } catch {
+          return send(res, 400, { 'content-type': 'application/json' }, JSON.stringify({ ok: false, error: 'invalid_json' }));
+        }
+        const name = String(body.name || 'skill').trim();
+        const content = String(body.content || '');
+        const safe = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_\-]+/g, '').slice(0, 64) || 'skill';
+        fs.mkdirSync(path.join(outDir(), 'skills'), { recursive: true });
+        const outPath = path.join(outDir(), 'skills', `${safe}.skill.md`);
+        fs.writeFileSync(outPath, content, 'utf8');
+        return send(res, 200, { 'content-type': 'application/json' }, JSON.stringify({ ok: true, outPath }));
       });
       return;
     }

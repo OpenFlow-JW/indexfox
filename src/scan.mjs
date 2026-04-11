@@ -26,6 +26,17 @@ export function scan({ paths, outDir = process.cwd(), maxFiles = 3000 }) {
 
   const candidates = proposeCandidates(files);
 
+  const fileList = files
+    .sort((a, b) => b.mtimeMs - a.mtimeMs)
+    .slice(0, 200)
+    .map((f) => ({
+      path: f.path,
+      name: path.basename(f.path),
+      ext: f.ext,
+      size: f.size,
+      mtimeMs: f.mtimeMs,
+    }));
+
   const index = {
     ok: true,
     scannedPaths: paths,
@@ -35,6 +46,7 @@ export function scan({ paths, outDir = process.cwd(), maxFiles = 3000 }) {
     },
     identity,
     candidates,
+    fileList,
     generatedAt: new Date().toISOString(),
   };
 
