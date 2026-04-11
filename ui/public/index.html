@@ -49,9 +49,13 @@
     .mono { font-family: var(--mono); font-size: 12px; color: var(--muted); }
 
     .cards { display:grid; gap:10px; }
-    .result { border: 1px dashed rgba(255,255,255,0.15); border-radius: 14px; padding: 12px; background: rgba(0,0,0,0.18); }
-    .result h3 { margin:0 0 8px; font-size: 13px; }
-    .result ul { margin:0; padding-left: 18px; color: var(--muted); font-size: 12px; line-height: 1.4; }
+    .cand { border: 1px dashed rgba(255,255,255,0.15); border-radius: 14px; padding: 12px; background: rgba(0,0,0,0.18); }
+    .candTop { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+    .candTitle { font-weight:800; margin-bottom:4px; }
+
+    #modal { position: fixed; inset:0; display:none; align-items:center; justify-content:center; background: rgba(0,0,0,0.55); padding: 18px; }
+    .modalCard { width: min(720px, 100%); max-height: 86vh; overflow:auto; border: 1px solid var(--line); border-radius: 16px; background: rgba(17,25,56,0.96); padding: 14px; }
+    .modalTop { display:flex; align-items:center; justify-content:space-between; margin-bottom: 10px; }
   </style>
 </head>
 <body>
@@ -73,6 +77,15 @@
     <div class="grid">
       <div class="card">
         <h2>Scan folders</h2>
+        <label>Primary role</label>
+        <select id="role" style="width:100%; border: 1px solid var(--line); border-radius: 12px; padding: 10px 11px; background: rgba(0,0,0,0.25); color: var(--text);">
+          <option value="service_planning">서비스 기획</option>
+          <option value="marketing">마케팅</option>
+          <option value="strategy">전략</option>
+          <option value="biz_ops">경영관리/사업관리</option>
+          <option value="hr">HR</option>
+          <option value="other">기타</option>
+        </select>
         <label>Folder paths (one per line)</label>
         <textarea id="paths" placeholder="/Users/me/Downloads\n/Users/me/Documents"></textarea>
         <div class="row" style="margin-top:10px;">
@@ -92,30 +105,8 @@
       </div>
 
       <div class="card">
-        <h2>Results (preview)</h2>
-        <div class="cards">
-          <div class="result">
-            <h3>Knowledge highlights</h3>
-            <ul>
-              <li>Key themes found across documents</li>
-              <li>Recurring decision criteria</li>
-            </ul>
-          </div>
-          <div class="result">
-            <h3>Workflow patterns</h3>
-            <ul>
-              <li>Repeated steps (draft → review → revise)</li>
-              <li>Hand-offs to other teams</li>
-            </ul>
-          </div>
-          <div class="result">
-            <h3>Skill candidates</h3>
-            <ul>
-              <li>Draft skill ideas extracted from your docs</li>
-              <li>Next: guided Q&A to finalize skill.md</li>
-            </ul>
-          </div>
-        </div>
+        <h2>Skill candidates</h2>
+        <div id="results" class="cards"></div>
       </div>
     </div>
 
@@ -124,6 +115,7 @@
     </div>
   </div>
 
+  <div id="modal"></div>
   <script type="module" src="/app.js"></script>
 </body>
 </html>

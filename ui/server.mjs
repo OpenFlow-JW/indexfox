@@ -25,6 +25,10 @@ function contentType(p) {
 // Very small in-memory job store (v0)
 const jobs = new Map();
 
+function outDir() {
+  return process.env.INDEXFOX_OUTDIR || process.cwd();
+}
+
 async function newJob(paths) {
   const id = Math.random().toString(16).slice(2);
   const job = {
@@ -58,7 +62,7 @@ async function newJob(paths) {
 
     try {
       const { scan } = await import('../src/scan.mjs');
-      const res = scan({ paths, outDir: process.cwd() });
+      const res = scan({ paths, outDir: outDir() });
       job.result = { totals: res.totals, candidates: res.candidates, identity: res.identity };
       job.progress = 100;
       job.message = 'Done.';
@@ -101,6 +105,46 @@ const server = http.createServer(async (req, res) => {
       const job = jobs.get(id);
       if (!job) return send(res, 404, { 'content-type': 'application/json' }, JSON.stringify({ ok: false, error: 'not_found' }));
       return send(res, 200, { 'content-type': 'application/json' }, JSON.stringify({ ok: true, job }));
+    }
+
+    if (u.pathname === '/api/identity' && req.method === 'GET') {
+      const { identityPath, ensureIdentity } = await import('../src/identity.mjs');
+      ensureIdentity(outDir());
+      const p = identityPath(outDir());
+      const text = fs.readFileSync(p, 'utf8');
+      return send(res, 200, { 'content-type': 'application/json' }, JSON.stringify({ ok: true, path: p, text }));
+    }
+
+    if (u.pathname === '/api/identity' && req.method === 'POST') {
+      let raw = '';
+      req.on('data', (d) => (raw += d));
+      req.on('end', async () => {
+        let body;
+        try { body = raw ? JSON.parse(raw) : {}; } catch {
+          return send(res, 400, { 'content-type': 'application/json' }, JSON.stringify({ ok: false, error: 'invalid_json' }));
+        }
+        const { identityPath, ensureIdentity } = await import('../src/identity.mjs');
+        ensureIdentity(outDir());
+        const p = identityPath(outDir());
+        fs.writeFileSync(p, String(body.text || ''), 'utf8');
+        return send(res, 200, { 'content-type': 'application/json' }, JSON.stringify({ ok: true }));
+      });
+      return;
+    }
+
+    if (u.pathname === '/api/skills' && req.method === 'POST') {
+      let raw = '';
+      req.on('data', (d) => (raw += d));
+      req.on('end', async () => {
+        let body;
+        try { body = raw ? JSON.parse(raw) : {}; } catch {
+          return send(res, 400, { 'content-type': 'application/json' }, JSON.stringify({ ok: false, error: 'invalid_json' }));
+        }
+        const { coauthorSkill } = await import('../src/wizard_web.mjs');
+        const r = await coauthorSkill({ outDir: outDir(), draft: body.draft || {} });
+        return send(res, 200, { 'content-type': 'application/json' }, JSON.stringify(r));
+      });
+      return;
     }
 
     // Static
