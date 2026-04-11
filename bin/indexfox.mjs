@@ -34,6 +34,7 @@ if (cmd === 'serve') {
 
   // keep the parent process alive; forward child exit code
   p.on('exit', (code) => process.exit(code ?? 0));
+  return;
 }
 
 if (cmd === 'scan') {
