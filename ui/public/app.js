@@ -223,7 +223,18 @@ async function ensureSetup() {
   const outputDirEl = el('input', { placeholder: 'Output folder (e.g., C:\\Users\\You\\IndexFox_Out)' });
   outputDirEl.value = cfg.outputDir || '';
 
-  const apiKeyEl = el('input', { placeholder: 'OpenAI API Key (BYOK)', type: 'password' });
+  const apiKeyEl = el('input', { placeholder: 'OpenAI API Key (BYOK)', type: 'password', style: 'flex:1;' });
+  const apiKeyToggle = el('button', {
+    class: 'btn secondary',
+    onClick: () => {
+      apiKeyEl.type = apiKeyEl.type === 'password' ? 'text' : 'password';
+    },
+  }, ['Show']);
+
+  const passEl = el('input', { placeholder: 'Password to encrypt API key (local only)', type: 'password' });
+
+  const createNewChk = el('input', { type: 'checkbox' });
+  const newNameEl = el('input', { placeholder: 'New folder name (optional)', style: 'flex:1;' });
 
   const card = el('div', { class: 'modalCard' }, [
     el('div', { class: 'modalTop' }, [el('strong', {}, ['IndexFox setup (one-time)'])]),
@@ -239,16 +250,38 @@ async function ensureSetup() {
         },
       }, ['Pick…']),
     ]),
-    el('div', { class: 'hint', style: 'margin-top:10px;' }, ['2) API Key (used only for LLM calls; outputs stay local)']),
-    apiKeyEl,
+    el('div', { class: 'row', style: 'margin-top:8px; align-items:center;' }, [
+      createNewChk,
+      el('div', { class: 'hint', style: 'margin:0 8px 0 6px;' }, ['Create a new subfolder:']),
+      newNameEl,
+    ]),
+
+    el('div', { class: 'hint', style: 'margin-top:10px;' }, ['2) API Key (optional; encrypted locally)']),
+    el('div', { class: 'row' }, [apiKeyEl, apiKeyToggle]),
+    passEl,
+    el('div', { class: 'hint' }, ['If you set an API key, IndexFox encrypts it locally with this password.']),
+
     el('div', { class: 'row', style: 'margin-top:12px; justify-content:flex-end;' }, [
       el('button', {
         class: 'btn',
         onClick: async () => {
-          const out = outputDirEl.value.trim();
+          let out = outputDirEl.value.trim();
           if (!out) return alert('Choose an output folder.');
-          const r2 = await postJSON('/api/config', { outputDir: out, apiKey: apiKeyEl.value.trim() });
-          if (!r2.ok) return alert('Failed to save config');
+
+          if (createNewChk.checked) {
+            const name = newNameEl.value.trim();
+            if (!name) return alert('Enter a new folder name.');
+            out = out.replace(/[\\/]+$/, '') + (out.includes('\\') ? '\\' : '/') + name;
+            const mk = await postJSON('/api/mkdir', { path: out });
+            if (!mk.ok) return alert('Failed to create folder.');
+          }
+
+          const apiKey = apiKeyEl.value.trim();
+          const password = passEl.value;
+          if (apiKey && !password) return alert('Enter a password to encrypt the API key.');
+
+          const r2 = await postJSON('/api/config', { outputDir: out, apiKey: apiKey || undefined, password: password || undefined });
+          if (!r2.ok) return alert(r2.error || 'Failed to save config');
           modal.style.display = 'none';
         },
       }, ['Save setup']),

@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import url from 'node:url';
 import os from 'node:os';
+import crypto from 'node:crypto';
 import { execFile } from 'node:child_process';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
@@ -40,6 +41,22 @@ function readConfig() {
 function writeConfig(cfg) {
   fs.mkdirSync(path.dirname(CONFIG_PATH), { recursive: true });
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2));
+}
+
+function encryptSecret({ plaintext, password }) {
+  const salt = crypto.randomBytes(16);
+  const key = crypto.scryptSync(password, salt, 32);
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  const enc = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return {
+    alg: 'aes-256-gcm',
+    salt: salt.toString('base64'),
+    iv: iv.toString('base64'),
+    tag: tag.toString('base64'),
+    data: enc.toString('base64'),
+  };
 }
 
 function outDir() {
@@ -197,8 +214,9 @@ const server = http.createServer(async (req, res) => {
       const cfg = readConfig();
       // never echo apiKey by default (UI can indicate "set" state)
       const safe = { ...cfg };
-      if (safe.apiKey) safe.apiKeySet = true;
+      if (safe.apiKeyEnc) safe.apiKeySet = true;
       delete safe.apiKey;
+      delete safe.apiKeyEnc;
       return send(res, 200, { 'content-type': 'application/json' }, JSON.stringify({ ok: true, config: safe }));
     }
 
@@ -211,11 +229,23 @@ const server = http.createServer(async (req, res) => {
           return send(res, 400, { 'content-type': 'application/json' }, JSON.stringify({ ok: false, error: 'invalid_json' }));
         }
         const cfg = readConfig();
+
         const next = {
           ...cfg,
           ...(body.outputDir ? { outputDir: String(body.outputDir) } : {}),
-          ...(body.apiKey ? { apiKey: String(body.apiKey) } : {}),
         };
+
+        // API key: encrypt if password provided
+        if (body.apiKey) {
+          const apiKey = String(body.apiKey);
+          const password = String(body.password || '');
+          if (!password) {
+            return send(res, 400, { 'content-type': 'application/json' }, JSON.stringify({ ok: false, error: 'missing_password_for_api_key' }));
+          }
+          next.apiKeyEnc = encryptSecret({ plaintext: apiKey, password });
+          delete next.apiKey; // never store plaintext
+        }
+
         writeConfig(next);
         return send(res, 200, { 'content-type': 'application/json' }, JSON.stringify({ ok: true }));
       });
@@ -223,24 +253,44 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (u.pathname === '/api/pick_folder' && req.method === 'POST') {
-      // v0: Windows FolderBrowserDialog via PowerShell
+      // Windows FolderBrowserDialog via PowerShell (local runtime)
       if (process.platform !== 'win32') {
         return send(res, 501, { 'content-type': 'application/json' }, JSON.stringify({ ok: false, error: 'picker_not_supported' }));
       }
 
       const ps = [
         '-NoProfile',
-        '-NonInteractive',
+        '-STA',
         '-Command',
-        `Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.FolderBrowserDialog; $f.Description = 'Select a folder for IndexFox to scan'; if($f.ShowDialog() -eq 'OK'){ $f.SelectedPath }`,
+        `Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.FolderBrowserDialog; $f.Description = 'Select a folder for IndexFox'; if($f.ShowDialog() -eq 'OK'){ $f.SelectedPath }`,
       ];
 
-      execFile('powershell.exe', ps, { timeout: 120000 }, (err, stdout) => {
+      execFile('powershell.exe', ps, { timeout: 120000 }, (err, stdout, stderr) => {
         if (err) {
-          return send(res, 500, { 'content-type': 'application/json' }, JSON.stringify({ ok: false, error: 'picker_failed' }));
+          return send(res, 500, { 'content-type': 'application/json' }, JSON.stringify({ ok: false, error: 'picker_failed', details: String(stderr || '') }));
         }
         const picked = String(stdout || '').trim();
         return send(res, 200, { 'content-type': 'application/json' }, JSON.stringify({ ok: true, path: picked }));
+      });
+      return;
+    }
+
+    if (u.pathname === '/api/mkdir' && req.method === 'POST') {
+      let raw = '';
+      req.on('data', (d) => (raw += d));
+      req.on('end', () => {
+        let body;
+        try { body = raw ? JSON.parse(raw) : {}; } catch {
+          return send(res, 400, { 'content-type': 'application/json' }, JSON.stringify({ ok: false, error: 'invalid_json' }));
+        }
+        const p = String(body.path || '').trim();
+        if (!p) return send(res, 400, { 'content-type': 'application/json' }, JSON.stringify({ ok: false, error: 'missing_path' }));
+        try {
+          fssync.mkdirSync(p, { recursive: true });
+          return send(res, 200, { 'content-type': 'application/json' }, JSON.stringify({ ok: true, path: p }));
+        } catch (e) {
+          return send(res, 500, { 'content-type': 'application/json' }, JSON.stringify({ ok: false, error: 'mkdir_failed', details: e?.message || String(e) }));
+        }
       });
       return;
     }
