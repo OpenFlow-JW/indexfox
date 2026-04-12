@@ -74,10 +74,6 @@ IndexFox is optimized for individuals. A future **IndexFox Team (Managed)** offe
 - Dedupe similar skills and propose a standard (standardization loop)
 - Produce lightweight weekly reports (what changed, what to standardize next)
 
-**Governance strategy (pragmatic):**
-- Start **open** to build adoption and reach critical mass
-- After critical mass (e.g., 40+ skills/plugins), add stronger guardrails (review rules, approvals, allowlists)
-
 **Likely “popular” categories:**
 - Internal data access connectors (make private corp data usable to AI safely)
 - Natural-language / voice control layers for existing tools (operate tools via Claude/LLM)
