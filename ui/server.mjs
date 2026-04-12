@@ -379,7 +379,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     const buf = fs.readFileSync(abs);
-    return send(res, 200, { 'content-type': contentType(abs) }, buf);
+    return send(res, 200, { 'content-type': contentType(abs), 'cache-control': 'no-store' }, buf);
   } catch (e) {
     return send(res, 500, { 'content-type': 'text/plain' }, `Internal error\n${e?.stack || e}`);
   }
