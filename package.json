@@ -14,5 +14,8 @@
     "harness": "node ./harness/run.mjs",
     "harness:ui": "node ./harness/ui_smoke.mjs",
     "lint": "node -c ./bin/indexfox.mjs"
+  },
+  "dependencies": {
+    "pdf-parse": "^1.1.1"
   }
 }
