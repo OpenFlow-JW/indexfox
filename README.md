@@ -67,10 +67,20 @@ cat my.skill.md | node ./bin/indexfox.mjs skill save --name <id> --stdin --out <
 
 ## IndexFox Team (Managed) (future)
 IndexFox is optimized for individuals. A future **IndexFox Team (Managed)** offering would make it easy for a team/department to:
-- Publish and host `skill.md` at a shared endpoint
-- Manage submissions (ownership, permissions, versioning)
-- Dedupe similar skills and propose a standard
+- Publish and host `skill.md` in a **shared space / registry** (a catalog teams can browse)
+- Support a **marketplace-like contribution loop** (submit → review → merge)
+- Provide **leaderboards / visibility** (most used, most copied, most improved skills)
+- Manage submissions (ownership, permissions, versioning, audit)
+- Dedupe similar skills and propose a standard (standardization loop)
 - Produce lightweight weekly reports (what changed, what to standardize next)
+
+**Governance strategy (pragmatic):**
+- Start **open** to build adoption and reach critical mass
+- After critical mass (e.g., 40+ skills/plugins), add stronger guardrails (review rules, approvals, allowlists)
+
+**Likely “popular” categories:**
+- Internal data access connectors (make private corp data usable to AI safely)
+- Natural-language / voice control layers for existing tools (operate tools via Claude/LLM)
 
 **Product ladder (proposed):**
 - **IndexFox** (this repo): personal, local-first, Apache-2.0 OSS.
