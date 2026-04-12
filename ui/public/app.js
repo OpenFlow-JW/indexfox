@@ -333,4 +333,23 @@ async function runScan() {
 }
 
 pickBtn.addEventListener('click', runScan);
+
+// Quick capture
+const capTitle = document.getElementById('capTitle');
+const capSource = document.getElementById('capSource');
+const capText = document.getElementById('capText');
+const capSave = document.getElementById('capSave');
+capSave.addEventListener('click', async () => {
+  const title = capTitle.value.trim();
+  const source = capSource.value.trim();
+  const text = capText.value.trim();
+  if (!text) return alert('Paste some text first.');
+  const r = await postJSON('/api/note/save', { title, source, text });
+  if (!r.ok) return alert(`Save failed: ${r.error || 'unknown_error'}`);
+  alert(`Saved note:\n${r.outPath}`);
+  capTitle.value = '';
+  capSource.value = '';
+  capText.value = '';
+});
+
 ensureSetup();

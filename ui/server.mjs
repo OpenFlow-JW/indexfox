@@ -354,6 +354,45 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // Quick capture: paste/link → save as a note (local)
+    if (u.pathname === '/api/note/save' && req.method === 'POST') {
+      let raw = '';
+      req.on('data', (d) => (raw += d));
+      req.on('end', () => {
+        let body;
+        try { body = raw ? JSON.parse(raw) : {}; } catch {
+          return send(res, 400, { 'content-type': 'application/json' }, JSON.stringify({ ok: false, error: 'invalid_json' }));
+        }
+
+        const title = String(body.title || '').trim() || 'Inbox note';
+        const source = String(body.source || '').trim();
+        const text = String(body.text || '').trim();
+
+        const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const safe = title.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_\-가-힣]+/g, '').slice(0, 48) || 'note';
+
+        const notesDir = path.join(outDir(), 'notes', 'inbox');
+        fs.mkdirSync(notesDir, { recursive: true });
+        const outPath = path.join(notesDir, `${stamp}__${safe}.md`);
+
+        const fm = [
+          '---',
+          'type: note',
+          'sensitivity: internal',
+          `created: ${stamp.slice(0, 10)}`,
+          source ? `source: ${JSON.stringify(source)}` : null,
+          '---',
+          '',
+        ].filter(Boolean).join('\n');
+
+        const content = `${fm}# ${title}\n\n${source ? `Source: ${source}\n\n` : ''}${text}\n`;
+        fs.writeFileSync(outPath, content, 'utf8');
+
+        return send(res, 200, { 'content-type': 'application/json' }, JSON.stringify({ ok: true, outPath }));
+      });
+      return;
+    }
+
     // Static
     let filePath = u.pathname === '/' ? '/index.html' : u.pathname;
     filePath = filePath.replace(/\.\.+/g, '.');

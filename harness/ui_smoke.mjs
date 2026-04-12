@@ -115,6 +115,19 @@ assert(job.result && Array.isArray(job.result.candidates) && job.result.candidat
   assert(saved.includes('Test Skill'), 'saved content');
 }
 
+// quick capture note
+{
+  const res = await fetch(`${base}/api/note/save`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ title: 'Inbox note', source: 'https://example.com', text: 'hello world' }),
+  });
+  const j = await res.json();
+  assert(j.ok === true && j.outPath, 'note save ok');
+  const saved = await fs.readFile(j.outPath, 'utf8');
+  assert(saved.includes('hello world'), 'note content');
+}
+
 child.kill('SIGTERM');
 await fs.rm(tmpRoot, { recursive: true, force: true });
 
