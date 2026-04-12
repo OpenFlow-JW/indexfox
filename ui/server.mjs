@@ -198,7 +198,7 @@ const server = http.createServer(async (req, res) => {
       const cfg = readConfig();
       // never echo apiKey by default (UI can indicate "set" state)
       const safe = { ...cfg };
-      // api key support disabled for now (keep setup simple)
+      if (safe.apiKey) safe.apiKeySet = true;
       delete safe.apiKey;
       delete safe.apiKeyEnc;
       return send(res, 200, { 'content-type': 'application/json' }, JSON.stringify({ ok: true, config: safe }));
@@ -217,9 +217,8 @@ const server = http.createServer(async (req, res) => {
         const next = {
           ...cfg,
           ...(body.outputDir ? { outputDir: String(body.outputDir) } : {}),
+          ...(body.apiKey ? { apiKey: String(body.apiKey) } : {}),
         };
-
-        // API key support disabled for now (keep setup simple)
 
         writeConfig(next);
         return send(res, 200, { 'content-type': 'application/json' }, JSON.stringify({ ok: true }));

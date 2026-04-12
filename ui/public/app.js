@@ -34,7 +34,7 @@ function el(tag, attrs = {}, children = []) {
   for (const [k, v] of Object.entries(attrs)) {
     if (k === 'class') n.className = v;
     else if (k === 'style') n.setAttribute('style', v);
-    else if (k.startsWith('on') && typeof v === 'function') n.addEventListener(k.slice(2), v);
+    else if (k.startsWith('on') && typeof v === 'function') n.addEventListener(k.slice(2).toLowerCase(), v);
     else n.setAttribute(k, v);
   }
   for (const c of children) n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
@@ -225,6 +225,14 @@ async function ensureSetup() {
 
   const errEl = el('div', { class: 'hint', style: 'color:#B91C1C; display:none; margin-top:6px;' }, ['']);
 
+  const apiKeyEl = el('input', { placeholder: 'OpenAI API Key', type: 'password', style: 'flex:1;' });
+  const apiKeyToggle = el('button', {
+    class: 'btn secondary',
+    onClick: () => {
+      apiKeyEl.type = apiKeyEl.type === 'password' ? 'text' : 'password';
+    },
+  }, ['Show']);
+
   const card = el('div', { class: 'modalCard' }, [
     el('div', { class: 'modalTop' }, [el('strong', {}, ['IndexFox setup (one-time)'])]),
     el('div', { class: 'hint' }, ['Choose output folder (IndexFox writes everything locally there).']),
@@ -245,13 +253,18 @@ async function ensureSetup() {
       }, ['Pick…']),
     ]),
     errEl,
+
+    el('div', { class: 'hint', style: 'margin-top:10px;' }, ['(Optional) API Key (BYOK) — stored locally']),
+    el('div', { class: 'row' }, [apiKeyEl, apiKeyToggle]),
+
     el('div', { class: 'row', style: 'margin-top:12px; justify-content:flex-end;' }, [
       el('button', {
         class: 'btn',
         onClick: async () => {
           const out = outputDirEl.value.trim();
           if (!out) return alert('Choose an output folder.');
-          const r2 = await postJSON('/api/config', { outputDir: out });
+          const apiKey = apiKeyEl.value.trim();
+          const r2 = await postJSON('/api/config', { outputDir: out, apiKey: apiKey || undefined });
           if (!r2.ok) return alert(r2.error || 'Failed to save config');
           modal.style.display = 'none';
         },
