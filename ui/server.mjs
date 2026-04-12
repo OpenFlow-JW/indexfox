@@ -5,7 +5,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import url from 'node:url';
 import os from 'node:os';
-import crypto from 'node:crypto';
 import { execFile } from 'node:child_process';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
@@ -43,21 +42,6 @@ function writeConfig(cfg) {
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2));
 }
 
-function encryptSecret({ plaintext, password }) {
-  const salt = crypto.randomBytes(16);
-  const key = crypto.scryptSync(password, salt, 32);
-  const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-  const enc = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
-  const tag = cipher.getAuthTag();
-  return {
-    alg: 'aes-256-gcm',
-    salt: salt.toString('base64'),
-    iv: iv.toString('base64'),
-    tag: tag.toString('base64'),
-    data: enc.toString('base64'),
-  };
-}
 
 function outDir() {
   const cfg = readConfig();
@@ -214,7 +198,7 @@ const server = http.createServer(async (req, res) => {
       const cfg = readConfig();
       // never echo apiKey by default (UI can indicate "set" state)
       const safe = { ...cfg };
-      if (safe.apiKeyEnc) safe.apiKeySet = true;
+      // api key support disabled for now (keep setup simple)
       delete safe.apiKey;
       delete safe.apiKeyEnc;
       return send(res, 200, { 'content-type': 'application/json' }, JSON.stringify({ ok: true, config: safe }));
@@ -235,16 +219,7 @@ const server = http.createServer(async (req, res) => {
           ...(body.outputDir ? { outputDir: String(body.outputDir) } : {}),
         };
 
-        // API key: encrypt if password provided
-        if (body.apiKey) {
-          const apiKey = String(body.apiKey);
-          const password = String(body.password || '');
-          if (!password) {
-            return send(res, 400, { 'content-type': 'application/json' }, JSON.stringify({ ok: false, error: 'missing_password_for_api_key' }));
-          }
-          next.apiKeyEnc = encryptSecret({ plaintext: apiKey, password });
-          delete next.apiKey; // never store plaintext
-        }
+        // API key support disabled for now (keep setup simple)
 
         writeConfig(next);
         return send(res, 200, { 'content-type': 'application/json' }, JSON.stringify({ ok: true }));
@@ -260,9 +235,10 @@ const server = http.createServer(async (req, res) => {
 
       const ps = [
         '-NoProfile',
-        '-STA',
+        '-ExecutionPolicy',
+        'Bypass',
         '-Command',
-        `Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.FolderBrowserDialog; $f.Description = 'Select a folder for IndexFox'; if($f.ShowDialog() -eq 'OK'){ $f.SelectedPath }`,
+        `$f = (New-Object -ComObject Shell.Application).BrowseForFolder(0,'Select a folder for IndexFox',0,0); if($f -ne $null){ $f.Self.Path }`,
       ];
 
       execFile('powershell.exe', ps, { timeout: 120000 }, (err, stdout, stderr) => {

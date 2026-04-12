@@ -54,24 +54,15 @@ child.stderr.on('data', (d) => (logs += d.toString()));
 const ready = await waitFor(async () => logs.includes('IndexFox UI running'), { timeoutMs: 8000 });
 assert(ready, 'server should start');
 
-// config set (with encrypted key)
+// config set (output folder only)
 {
   const res = await fetch(`${base}/api/config`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ outputDir: outDir, apiKey: 'sk-test-123', password: 'pw1234' }),
+    body: JSON.stringify({ outputDir: outDir }),
   });
   const j = await res.json();
   assert(j.ok === true, 'config post ok');
-}
-
-// config get should not echo key
-{
-  const res = await fetch(`${base}/api/config`);
-  const j = await res.json();
-  assert(j.ok === true, 'config get ok');
-  assert(j.config && j.config.apiKeySet === true, 'apiKeySet flag');
-  assert(!('apiKey' in j.config), 'apiKey not echoed');
 }
 
 // scan
